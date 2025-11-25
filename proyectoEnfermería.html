@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospital Delivery</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background-color: #f2f6f9;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #0078d7;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+      position: relative;
+    }
+
+    #notificacion {
+      position: absolute;
+      top: 15px;
+      right: 25px;
+      background: red;
+      color: white;
+      border-radius: 50%;
+      padding: 4px 10px;
+      display: none;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h2, h3 {
+      text-align: center;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    input, select, button {
+      padding: 10px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    button {
+      background-color: #0078d7;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005fa3;
+    }
+
+    #productos, #panelPedidos {
+      display: none;
+    }
+
+    .categoria {
+      background: #eaf2fa;
+      border-radius: 10px;
+      margin-top: 1rem;
+      padding: 1rem;
+    }
+
+    .producto {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 6px 0;
+    }
+
+    .producto input {
+      width: 60px;
+      text-align: center;
+    }
+
+    #pedidoResumen {
+      background: #eef3f7;
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .logout {
+      text-align: right;
+    }
+
+    .pedidoBox {
+      background: #f7fafc;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    /* ✅ Pestañas */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #ddd;
+    }
+
+    .tab-btn.active {
+      background: #0078d7;
+      color: white;
+    }
+
+    /* 👁️ Campo contraseña con botón */
+    .password-container {
+      position: relative;
+    }
+
+    .toggle-pass {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏥 Hospital Delivery</h1>
+    <span id="notificacion">0</span>
+    <p>Pedidos internos y suministros médicos</p>
+    <audio id="audioNotif" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+  </header>
+
+  <main>
+    <div class="logout" id="logoutSection" style="display:none">
+      <button onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+
+    <!-- LOGIN -->
+    <section id="loginSection">
+      <h2>Iniciar Sesión</h2>
+      <form id="formLogin">
+        <input type="email" id="loginCorreo" placeholder="Correo" required>
+        <div class="password-container">
+          <input type="password" id="loginPass" placeholder="Contraseña" required>
+          <button type="button" class="toggle-pass" onclick="togglePassword('loginPass', this)">👁️</button>
+        </div>
+        <button type="submit">Entrar</button>
+        <p>¿No tienes cuenta? <a href="#" onclick="mostrarRegistro()">Regístrate</a></p>
+      </form>
+    </section>
+
+    <!-- REGISTRO -->
+    <section id="registroSection" style="display:none;">
+      <h2>Registro de Usuario</h2>
+      <form id="formRegistro">
+        <input type="text" id="nombre" placeholder="Nombre completo" required>
+        <input type="email" id="correo" placeholder="Correo electrónico" required>
+        <div class="password-container">
+          <input type="password" id="pass" placeholder="Contraseña" required>
+          <button type="button" class="toggle-pass" onclick="togglePassword('pass', this)">👁️</button>
+        </div>
+        <select id="rol" required>
+          <option value="">Selecciona tu rol</option>
+          <option value="enfermero">Enfermero</option>
+          <option value="doctor">Doctor</option>
+          <option value="paciente">Paciente</option>
+        </select>
+        <button type="submit">Registrarse</button>
+      </form>
+    </section>
+
+    <!-- CATÁLOGO -->
+    <section id="productos">
+      <h2>Catálogo Hospitalario</h2>
+      <div id="listaCategorias"></div>
+      <div id="asignarEnfermero" style="margin-top:1rem; display:none;">
+        <label for="selectEnfermero"><strong>Selecciona el enfermero receptor:</strong></label>
+        <select id="selectEnfermero"></select>
+      </div>
+      <button id="btnHacerPedido">Enviar pedido</button>
+      <div id="pedidoResumen"></div>
+    </section>
+
+    <!-- ✅ PANEL DE PEDIDOS -->
+    <section id="panelPedidos">
+      <h2>📦 Pedidos recibidos</h2>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="cambiarTab('pendientes')">Pendientes</button>
+        <button class="tab-btn" onclick="cambiarTab('entregados')">Entregados</button>
+      </div>
+      <div id="listaPendientes"></div>
+      <div id="listaEntregados" style="display:none;"></div>
+    </section>
+  </main>
+
+  <script>
+    const formRegistro = document.getElementById("formRegistro");
+    const formLogin = document.getElementById("formLogin");
+    const productosSection = document.getElementById("productos");
+    const listaCategorias = document.getElementById("listaCategorias");
+    const panelPedidos = document.getElementById("panelPedidos");
+    const listaPendientes = document.getElementById("listaPendientes");
+    const listaEntregados = document.getElementById("listaEntregados");
+    const selectEnfermero = document.getElementById("selectEnfermero");
+    const asignarEnfermero = document.getElementById("asignarEnfermero");
+    const notificacion = document.getElementById("notificacion");
+    const audioNotif = document.getElementById("audioNotif");
+
+    let usuarioActivo = null;
+    let ultimoConteo = 0;
+
+    const catalogo = {
+      "Equipo de protección personal (EPP)": [
+        "Guantes estériles", "Cubrebocas", "Goggles", "Batas", "Gorros"
+      ],
+      "Instrumental básico": [
+        "Termómetro", "Estetoscopio", "Esfigmomanómetro", "Linterna clínica", "Tijeras médicas"
+      ],
+      "Medicamentos comunes": [
+        "Paracetamol", "Ibuprofeno", "Omeprazol", "Amoxicilina", "Metformina"
+      ],
+      "Material de curación": [
+        "Gasas", "Vendas", "Micropore", "Jeringas", "Alcohol"
+      ],
+      "Documentos y papelería": [
+        "Formatos médicos", "Reportes clínicos", "Control de medicación", "Expedientes", "Solicitudes de laboratorio"
+      ]
+    };
+
+    // ✅ Mostrar/Ocultar contraseña
+    function togglePassword(id, btn) {
+      const input = document.getElementById(id);
+      if (input.type === "password") {
+        input.type = "text";
+        btn.textContent = "🙈";
+      } else {
+        input.type = "password";
+        btn.textContent = "👁️";
+      }
+    }
+
+    // ✅ Generar número de serie
+    function generarNumeroSerie() {
+      let ultimoNumero = parseInt(localStorage.getItem("ultimoNumeroSerie") || "0");
+      ultimoNumero++;
+      localStorage.setItem("ultimoNumeroSerie", ultimoNumero);
+      return `HD-${String(ultimoNumero).padStart(4, "0")}`;
+    }
+
+    // ✅ Registro
+    formRegistro.addEventListener("submit", e => {
+      e.preventDefault();
+      const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+      const user = {
+        nombre: nombre.value,
+        correo: correo.value,
+        pass: pass.value,
+        rol: rol.value
+      };
+      if (usuarios.some(u => u.correo === user.correo)) return alert("Correo ya registrado");
+      usuarios.push(user);
+      localStorage.setItem("usuarios", JSON.stringify(usuarios));
+      alert("Registro exitoso ✅");
+      mostrarLogin();
+    });
+
+    // ✅ Login
+    formLogin.addEventListener("submit", e => {
+      e.preventDefault();
+      const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+      const user = usuarios.find(u => u.correo === loginCorreo.value && u.pass === loginPass.value);
+      if (!user) return alert("Datos incorrectos");
+      usuarioActivo = user;
+      localStorage.setItem("activo", JSON.stringify(user));
+      iniciarSesion();
+    });
+
+    function iniciarSesion() {
+      loginSection.style.display = "none";
+      registroSection.style.display = "none";
+      logoutSection.style.display = "block";
+
+      if (usuarioActivo.rol === "enfermero") {
+        panelPedidos.style.display = "block";
+        actualizarPedidos();
+        setInterval(actualizarPedidos, 6000);
+      } else {
+        productosSection.style.display = "block";
+        mostrarCatalogo();
+        cargarEnfermeros();
+        asignarEnfermero.style.display = "block";
+      }
+    }
+
+    // ✅ Tabs
+    function cambiarTab(tab) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      if (tab === "pendientes") {
+        listaPendientes.style.display = "block";
+        listaEntregados.style.display = "none";
+        document.querySelector(".tabs button:nth-child(1)").classList.add("active");
+      } else {
+        listaPendientes.style.display = "none";
+        listaEntregados.style.display = "block";
+        document.querySelector(".tabs button:nth-child(2)").classList.add("active");
+      }
+    }
+
+    // ✅ Mostrar catálogo
+    function mostrarCatalogo() {
+      listaCategorias.innerHTML = "";
+      Object.entries(catalogo).forEach(([cat, items]) => {
+        let d = document.createElement("div");
+        d.classList.add("categoria");
+        d.innerHTML = `<h3>${cat}</h3>`;
+        items.forEach(p => {
+          d.innerHTML += `
+            <div class="producto">
+              <span>${p}</span>
+              <input type="number" min="0" value="0" id="${p.replace(/\s+/g,'_')}">
+            </div>`;
+        });
+        listaCategorias.appendChild(d);
+      });
+    }
+
+    // ✅ Enfermeros disponibles
+    function cargarEnfermeros() {
+      const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+      selectEnfermero.innerHTML = "";
+      usuarios.filter(u => u.rol === "enfermero").forEach(e => {
+        selectEnfermero.innerHTML += `<option value="${e.correo}">${e.nombre}</option>`;
+      });
+    }
+
+    // ✅ Enviar pedido
+    btnHacerPedido.addEventListener("click", () => {
+      const inputs = document.querySelectorAll(".producto input");
+      let items = [];
+      inputs.forEach(i => i.value > 0 && items.push({ nombre: i.id.replace(/_/g, " "), cantidad: i.value }));
+      if (!items.length) return alert("Selecciona productos 🤔");
+      if (!selectEnfermero.value) return alert("Selecciona un enfermero");
+
+      let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
+      const numSerie = generarNumeroSerie();
+
+      pedidos.push({
+        id: Date.now(),
+        numeroSerie: numSerie,
+        de: usuarioActivo.correo,
+        para: selectEnfermero.value,
+        items,
+        fecha: new Date().toLocaleString(),
+        entregado: false,
+        expira: Date.now() + 4 * 60 * 60 * 1000
+      });
+      localStorage.setItem("pedidos", JSON.stringify(pedidos));
+      alert(`Pedido enviado ✅\nNúmero de serie: ${numSerie}`);
+    });
+
+    // ✅ Actualizar pedidos
+    function actualizarPedidos() {
+      let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
+      const ahora = Date.now();
+      pedidos = pedidos.filter(p => p.expira > ahora);
+      localStorage.setItem("pedidos", JSON.stringify(pedidos));
+
+      const pUser = pedidos.filter(p => p.para === usuarioActivo.correo);
+      const pendientes = pUser.filter(p => !p.entregado);
+      const entregados = pUser.filter(p => p.entregado);
+
+      notificacion.style.display = pendientes.length ? "inline-block" : "none";
+      notificacion.textContent = pendientes.length;
+      if (pendientes.length > ultimoConteo) audioNotif.play();
+      ultimoConteo = pendientes.length;
+
+      listaPendientes.innerHTML = pendientes.length ? "" : "<p>No hay pedidos pendientes</p>";
+      pendientes.forEach(p => pintarPedido(p, listaPendientes, false));
+
+      listaEntregados.innerHTML = entregados.length ? "" : "<p>No hay pedidos entregados</p>";
+      entregados.forEach(p => pintarPedido(p, listaEntregados, true));
+    }
+
+    // ✅ Dibujar pedidos
+    function pintarPedido(pedido, contenedor, entregado) {
+      const div = document.createElement("div");
+      div.classList.add("pedidoBox");
+      div.innerHTML = `
+        <strong>N° Serie:</strong> ${pedido.numeroSerie}<br>
+        <strong>De:</strong> ${pedido.de}<br>
+        <strong>Fecha:</strong> ${pedido.fecha}<br>
+        <ul>${pedido.items.map(i => `<li>${i.nombre} (${i.cantidad})</li>`).join("")}</ul>
+        ${!entregado ? `<button onclick="marcarEntregado(${pedido.id})">✅ Marcar entregado</button>` : ""}
+        <button onclick="eliminarPedido(${pedido.id})">🗑 Eliminar</button>`;
+      contenedor.appendChild(div);
+    }
+
+    // ✅ Acciones pedidos
+    function marcarEntregado(id) {
+      let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
+      pedidos = pedidos.map(p => p.id === id ? { ...p, entregado: true, expira: Date.now() + 4 * 60 * 60 * 1000 } : p);
+      localStorage.setItem("pedidos", JSON.stringify(pedidos));
+      actualizarPedidos();
+    }
+
+    function eliminarPedido(id) {
+      let pedidos = JSON.parse(localStorage.getItem("pedidos")) || [];
+      pedidos = pedidos.filter(p => p.id !== id);
+      localStorage.setItem("pedidos", JSON.stringify(pedidos));
+      actualizarPedidos();
+    }
+
+    // ✅ Sesiones
+    function cerrarSesion() {
+      localStorage.removeItem("activo");
+      location.reload();
+    }
+
+    function mostrarRegistro() {
+      loginSection.style.display = "none";
+      registroSection.style.display = "block";
+    }
+
+    function mostrarLogin() {
+      registroSection.style.display = "none";
+      loginSection.style.display = "block";
+    }
+
+    onload = () => {
+      const activo = JSON.parse(localStorage.getItem("activo"));
+      if (activo) usuarioActivo = activo, iniciarSesion();
+    };
+  </script>
+</body>
+</html>
